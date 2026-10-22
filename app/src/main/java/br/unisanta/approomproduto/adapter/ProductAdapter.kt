@@ -11,8 +11,7 @@ import br.unisanta.approomproduto.model.Product
 
 class ProductAdapter(
     private val produtos: List<Product>,
-    private val onDeleteClick: (Product) -> Unit,
-    private val onUpdateClick: (Product) -> Unit
+    private val onDeleteClick: (Product) -> Unit
 ) : RecyclerView.Adapter<ProductAdapter.ViewHolder>() {
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -39,10 +38,6 @@ class ProductAdapter(
 
         holder.btnDeletar.setOnClickListener {
             onDeleteClick(produto)
-        }
-
-        holder.btnEditar.setOnClickListener {
-            onUpdateClick(produto)
         }
     }
 }

@@ -19,14 +19,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var db: AppDatabase
     private lateinit var productDao: ProductDao
 
-    private var produtoEdit: Product? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Configuração inicial do RecyclerView
         binding.listaItens.layoutManager = LinearLayoutManager(this)
 
         db = Room.databaseBuilder(
@@ -38,6 +37,7 @@ class MainActivity : AppCompatActivity() {
 
         productDao = db.productDao()
 
+        // Inserção de produto
         binding.btnInserirProduto.setOnClickListener {
             val name = binding.editProductName.text.toString()
             val priceText = binding.editProductPrice.text.toString()
@@ -48,33 +48,33 @@ class MainActivity : AppCompatActivity() {
                 if (price == null || price <= 0.0) {
                     binding.editProductPrice.error = "Informe um preço válido"
                 } else {
-                    lifecycleScope.launch {
-                        if (produtoEdit == null) {
-                            val newProduct = Product(
-                                name = name,
-                                price = price,
-                                description = description
-                            )
-                            productDao.insertAll(newProduct)
-                            Toast.makeText(this@MainActivity, "Produto inserido!", Toast.LENGTH_SHORT).show()
-                        } else {
-                            val productUpdated = produtoEdit!!.copy(
-                                name = name,
-                                price = price,
-                                description = description
-                            )
-                            productDao.update(productUpdated)
-                            Toast.makeText(this@MainActivity, "Produto atualizado!", Toast.LENGTH_SHORT).show()
+                    val product = Product(
+                        name = name,
+                        price = price,
+                        description = description
+                    )
 
-                            limparEstadoEdicao()
-                        }
+                    lifecycleScope.launch {
+                        productDao.insertAll(product)
+                        Log.i("TAG", "Produto inserido: $name R$$price")
+                        Toast.makeText(
+                            this@MainActivity, "Produto inserido!",
+                            Toast.LENGTH_SHORT
+                        ).show()
 
                         carregarProdutos()
-                        limparCampos()
                     }
+
+                    binding.editProductName.text.clear()
+                    binding.editProductPrice.text.clear()
+                    binding.editProductDescription.text.clear()
+                    binding.editProductName.requestFocus()
                 }
             } else {
-                Toast.makeText(this, "Preencha os campos obrigatórios!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this, "Preencha os campos obrigatórios!",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
@@ -119,45 +119,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun preencherCamposParaEdicao(product: Product) {
-        produtoEdit = product
-        binding.editProductName.setText(product.name)
-        binding.editProductPrice.setText(product.price.toString())
-        binding.editProductDescription.setText(product.description ?: "")
-
-        binding.btnInserirProduto.text = "Atualizar Produto"
-        binding.editProductName.requestFocus()
-    }
-
-    private fun limparEstadoEdicao() {
-        produtoEdit = null
-        binding.btnInserirProduto.text = "Salvar Produto"
-    }
-
-    private fun limparCampos() {
-        binding.editProductName.text.clear()
-        binding.editProductPrice.text.clear()
-        binding.editProductDescription.text.clear()
-        binding.editProductName.requestFocus()
-    }
-
+    // Função auxiliar para evitar repetição de código ao configurar o Adapter
     private fun configurarAdapter(products: List<Product>) {
         if (products.isNotEmpty()) {
-            binding.listaItens.adapter = ProductAdapter(
-                produtos = products,
-                onDeleteClick = { produtoParaDeletar ->
-                    lifecycleScope.launch {
-                        productDao.delete(produtoParaDeletar)
-                        Toast.makeText(this@MainActivity, "Produto deletado!", Toast.LENGTH_SHORT).show()
-                        carregarProdutos()
-                    }
-                },
-                onUpdateClick = { produtoParaEditar ->
-                    preencherCamposParaEdicao(produtoParaEditar)
+            binding.listaItens.adapter = ProductAdapter(products) { produtoParaDeletar ->
+                lifecycleScope.launch {
+                    productDao.delete(produtoParaDeletar)
+                    Toast.makeText(this@MainActivity, "Produto deletado!", Toast.LENGTH_SHORT).show()
+                    carregarProdutos()
                 }
-            )
+            }
         } else {
-            binding.listaItens.adapter = ProductAdapter(emptyList(), {}, {})
+            binding.listaItens.adapter = ProductAdapter(emptyList()) {}
         }
     }
 }
